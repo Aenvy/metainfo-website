@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: metainfo-website-container
+    ports:
+      - 8080:8080
+    network_mode: host
+    volumes:
+      - /home/cmssdmci/certs.d:/var/certs.d
+    env_file:
+      - mc5g-metainfo-website-backend/conf/.env
+    environment:
+      # steps to create fullchain.pem
+      # sudo cp ~/ktm215.key /etc/pki/tls/private/
+      # sudo cat ~/ktm215.cer /etc/pki/ca-trust/source/anchors/HP_Ent_Private_SSL_CA.cer > /home/cmssdmci/certs.d/ktm215-fullchain.pem
+      - CERTFILE=/var/certs.d/ktm215-fullchain.pem
+      - KEYFILE=/var/certs.d/ktm215.key
+      - REQUESTS_CA_BUNDLE=/var/certs.d/ca-bundle.crt
+    restart: always

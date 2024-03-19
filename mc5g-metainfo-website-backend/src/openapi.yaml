@@ -1,0 +1,525 @@
+openapi: '3.0.2'
+info:
+  title: 'Metainfo REST API'
+  version: '2.0'
+  description: >
+    This REST API specification offers a collection-based, document-centric set of endpoints to manipulate MC5G CICD metainfos.
+    It is modeled against the REST API described in the document HP Service Manager's Web Services Guide.
+servers:
+  - url: https://ktm215.gre.hpecorp.net/api/v2/
+    description: >
+      Production server instance.
+  - url: https://ktm442.gre.hpecorp.net:8081/api/v2/
+    description: >
+      Sandbox server instance.
+components:
+  schemas:
+    collection:
+      type: string
+      enum:
+        - caas
+        - products
+        - components
+        - quality
+        - results
+        - solutions
+        - tests
+    artifact-group-id:
+      type: string
+    artifact-id:
+      type: string
+    artifact-version:
+      type: string
+    query-result:
+      type: object
+      properties:
+        name:
+          type: string
+          description: >
+            Name of the collection that was queried.
+        count:
+          type: integer
+          description: >
+            Number of documents in the result.
+        total:
+          type: integer
+          description: >
+            Total number of documents that matched the query.
+            May be less than `count` if only a subset of the result was returned.
+        members:
+          type: array
+          description: >
+            List of documents.
+          items:
+            type: object
+_definitions:
+  collection-path-collection: &collection-path-collection
+    in: path
+    name: collection
+    description: >
+      Collection to query.
+    required: true
+    schema:
+      $ref: '#/components/schemas/collection'
+  collection-path-groupId: &collection-path-groupId
+    in: path
+    name: groupId
+    description: >
+      Artifact group ID of metainfo document to query.
+    required: true
+    schema:
+      $ref: '#/components/schemas/artifact-group-id'
+    examples:
+      'Solution':
+        value: 'com.hpe.cms.5g.sol'
+      'Product':
+        value: 'com.hpe.cms.5g.prod'
+      'Component':
+        value: 'com.hpe.cms.5g.comp'
+  collection-path-artifactId: &collection-path-artifactId
+    in: path
+    name: artifactId
+    description: >
+      Artifact ID of metainfo document to query.
+    required: true
+    schema:
+      $ref: '#/components/schemas/artifact-id'
+    examples:
+      'CMS5G solution':
+        value: 'cms5g-integ-sol'
+      'HPE 5GC AUSF':
+        value: 'hpe-nf-ausf-prod'
+      'CPP AUSF nausf-auth':
+        value: 'hpe-nf-ausf-nausf-auth-comp'
+  collection-path-version: &collection-path-version
+    in: path
+    name: version
+    description: >
+      Artifact version of metainfo document to query.
+    required: true
+    schema:
+      $ref: '#/components/schemas/artifact-version'
+    examples:
+      'CMS5G solution 1.2302.0 GA':
+        value: '1.2302.0-202302151536-1'
+      'HPE 5GC AUSF 1.2302.0 GA':
+        value: '1.1.0-202302131150-5'
+      'CPP AUSF nausf-auth 1.2302.0 GA':
+        value: '1.1.0-202302131150-5'
+  collection-query-start: &collection-query-start
+    in: query
+    name: start
+    description: >
+      How many documents to skip at the beginning of the response.
+    required: false
+    schema:
+      type: integer
+      minimum: 0
+  collection-query-count: &collection-query-count
+    in: query
+    name: count
+    description: >
+      How many documents to return at most in the response.
+    required: false
+    schema:
+      type: integer
+      minimum: 0
+  collection-query-view: &collection-query-view
+    in: query
+    name: view
+    description: >
+      What documents fields to include in the response.
+    required: false
+    schema:
+      type: string
+      default: full
+      enum:
+        - condense
+        - summary
+        - full
+  collection-query-earliestFor: &collection-query-earliestFor
+    in: query
+    name: earliestFor
+    description: >
+      Comma-separated fields to aggregate the earliest document on.
+      Mutually exclusive with `latestFor`.
+    required: false
+    schema:
+      type: string
+  collection-query-latestFor: &collection-query-latestFor
+    in: query
+    name: latestFor
+    description: >
+      Comma-separated fields to aggregate the latest document on.
+      Mutually exclusive with `earliestFor`.
+    required: false
+    schema:
+      type: string
+  collection-query-sortBy: &collection-query-sortBy
+    in: query
+    name: sortBy
+    description: >
+      Comma-separated fields to sort documents.
+      Add `:ascending` suffix for default sort order, add `:descending` suffix for reverse sort order.
+      The default sort order is assumed if no suffix is specified.
+    required: false
+    schema:
+      type: string
+  collection-query-raw: &collection-query-raw
+    in: query
+    name: raw
+    description: >
+      Set to true to download raw, unconverted documents. Only effective if view is set to `full`.
+    required: false
+    schema:
+      type: boolean
+      default: false
+  collection-document-subquery: &collection-document-subquery
+    - *collection-path-groupId
+    - *collection-path-artifactId
+    - *collection-path-version
+    - *collection-query-start
+    - *collection-query-count
+    - *collection-query-view
+    - *collection-query-earliestFor
+    - *collection-query-latestFor
+    - *collection-query-sortBy
+    - *collection-query-raw              
+paths:
+  /{collection}:
+    get:
+      tags:
+        - collection
+      description: >
+        Queries a collection.
+        Part of the `collections` module.
+      parameters:
+        - *collection-path-collection
+        - in: query
+          name: filter
+          description: >
+            Filter what to include in the response.
+          required: false
+          schema:
+            type: object
+        - *collection-query-start
+        - *collection-query-count
+        - *collection-query-view
+        - *collection-query-earliestFor
+        - *collection-query-latestFor
+        - *collection-query-sortBy
+        - *collection-query-raw
+      responses:
+        '200':
+          description: >
+            The query result is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/query-result'
+            text/csv: {}
+        '401':
+          description: >
+            The user lacks the `xxx-list` role to query this metainfo collection.
+        '404':
+          description: >
+            This collection does not exist.
+  /{collection}/uiSchema:
+    get:
+      tags:
+        - collection
+      description: >
+        Fetches the schema of a collection for the advanced search UI.
+        This endpoint should be deprecated as soon as the canonical schema is exposed through the REST API and the advanced search UI leverages it.
+        Part of the `collections` module.
+      parameters:
+        - *collection-path-collection
+      responses:
+        '200':
+          description: >
+            The UI schema for this collection is returned.
+  /{collection}/watch:
+    get:
+      tags:
+        - collection
+      description: >
+        Watches the modifications of a collection.
+        If `latestFor` is used, the events generated are relative to the aggregation given (i.e. documents are identified as being new or newer relative to the set of documents indexed by the tuple of properties).
+        Part of the `collections` module.
+      parameters:
+        - *collection-path-collection
+        - *collection-query-view
+        - *collection-query-latestFor
+        - *collection-query-raw
+      responses:
+        '200':
+          description: >
+            An event stream of the collection changes.
+            Events have the following properties:
+              * `event`:
+                * When `latestFor` is not used:
+                  * `insert`: A document has been inserted in the collection
+                * When `latestFor` is used:
+                  * `context`: Working set of documents (supplied at the start of the watch)
+                  * `new`: A new document appeared in the working set
+                  * `newer`: A newer version of an existing document appeared in the working set
+              * `data`: The contents of the document related to the event
+              * `timestamp`: Timestamp of the event in ISO 8601 format
+          content:
+            text/event-stream: {}
+  /{collection}/{groupId}/{artifactId}/{version}:
+    get:
+      tags:
+        - collection
+      description: >
+        Queries a specific metainfo document in a collection.
+        Part of the `collections` module.
+      parameters:
+        - *collection-path-collection
+        - *collection-path-groupId
+        - *collection-path-artifactId
+        - *collection-path-version
+        - *collection-query-view
+        - *collection-query-raw
+      responses:
+        '200':
+          description: >
+            The metainfo document is returned.
+        '401':
+          description: >
+            The user lacks the `xxx-get` role to query a metainfo document in this collection.
+        '404':
+          description: >
+            The metainfo document does not exist in this collection or this collection does not exist.
+  /{collection}/{groupId}/{artifactId}/{version}/graph:
+    get:
+      tags:
+        - collection
+      description: >
+        Queries the graph of a metainfo document in a collection.
+        Part of the `collections` module.
+      parameters:
+        - *collection-path-collection
+        - *collection-path-groupId
+        - *collection-path-artifactId
+        - *collection-path-version
+      responses:
+        '200':
+          description: >
+            The graph of the metainfo document is returned.
+          content:
+            application/json: {}
+            text/vnd.mermaid: {}
+        '401':
+          description: >
+            The user lacks the `xxx-get` role to query a metainfo document in this collection.
+        '404':
+          description: >
+            The metainfo document does not exist in this collection or this collection does not exist.
+  /components/{groupId}/{artifactId}/{version}/buildDependencies:
+    get:
+      tags:
+        - components
+      description: >
+        Queries the build dependencies of a component document.
+        Part of the `collections` module.
+      parameters: *collection-document-subquery
+      responses:
+        '200':
+          description: >
+            The query result is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/query-result'
+            text/csv: {}
+        '401':
+          description: >
+            The user lacks the `component-get` role.
+        '404':
+          description: >
+            The component document does not exist.
+  /components/{groupId}/{artifactId}/{version}/runtimeDependencies:
+    get:
+      tags:
+        - components
+      description: >
+        Queries the runtime dependencies of a component document.
+        Part of the `collections` module.
+      parameters: *collection-document-subquery
+      responses:
+        '200':
+          description: >
+            The query result is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/query-result'
+            text/csv: {}
+        '401':
+          description: >
+            The user lacks the `component-get` role.
+        '404':
+          description: >
+            The component document does not exist.
+  /products/{groupId}/{artifactId}/{version}/components:
+    get:
+      tags:
+        - products
+      description: >
+        Queries all the components of a product document.
+        Part of the `collections` module.
+      parameters: *collection-document-subquery
+      responses:
+        '200':
+          description: >
+            The query result is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/query-result'
+            text/csv: {}
+        '401':
+          description: >
+            The user lacks the `product-get` role.
+        '404':
+          description: >
+            The product document does not exist.
+  /products/{groupId}/{artifactId}/{version}/components/buildDependencies:
+    get:
+      tags:
+        - products
+      description: >
+        Queries all the build dependencies of a product document.
+        Part of the `collections` module.
+      parameters: *collection-document-subquery
+      responses:
+        '200':
+          description: >
+            The query result is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/query-result'
+            text/csv: {}
+        '401':
+          description: >
+            The user lacks the `product-get` role.
+        '404':
+          description: >
+            The product document does not exist.
+  /products/{groupId}/{artifactId}/{version}/components/runtimeDependencies:
+    get:
+      tags:
+        - products
+      description: >
+        Queries all the runtime dependencies of a product document.
+        Part of the `collections` module.
+      parameters: *collection-document-subquery
+      responses:
+        '200':
+          description: >
+            The query result is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/query-result'
+            text/csv: {}
+        '401':
+          description: >
+            The user lacks the `product-get` role.
+        '404':
+          description: >
+            The product document does not exist.
+  /solutions/{groupId}/{artifactId}/{version}/products:
+    get:
+      tags:
+        - solutions
+      description: >
+        Queries all the products of a solution document.
+        Part of the `collections` module.
+      parameters: *collection-document-subquery
+      responses:
+        '200':
+          description: >
+            The query result is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/query-result'
+            text/csv: {}
+        '401':
+          description: >
+            The user lacks the `solution-get` role.
+        '404':
+          description: >
+            The solution document does not exist.
+  /solutions/{groupId}/{artifactId}/{version}/products/components:
+    get:
+      tags:
+        - solutions
+      description: >
+        Queries all the components of a solution document.
+        Part of the `collections` module.
+      parameters: *collection-document-subquery
+      responses:
+        '200':
+          description: >
+            The query result is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/query-result'
+            text/csv: {}
+        '401':
+          description: >
+            The user lacks the `solution-get` role.
+        '404':
+          description: >
+            The solution document does not exist.
+  /solutions/{groupId}/{artifactId}/{version}/products/components/buildDependencies:
+    get:
+      tags:
+        - solutions
+      description: >
+        Queries all the build dependencies of a solution document.
+        Part of the `collections` module.
+      parameters: *collection-document-subquery
+      responses:
+        '200':
+          description: >
+            The query result is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/query-result'
+            text/csv: {}
+        '401':
+          description: >
+            The user lacks the `solution-get` role.
+        '404':
+          description: >
+            The solution document does not exist.
+  /solutions/{groupId}/{artifactId}/{version}/products/components/runtimeDependencies:
+    get:
+      tags:
+        - solutions
+      description: >
+        Queries all the runtime dependencies of a solution document.
+        Part of the `collections` module.
+      parameters: *collection-document-subquery
+      responses:
+        '200':
+          description: >
+            The query result is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/query-result'
+            text/csv: {}
+        '401':
+          description: >
+            The user lacks the `solution-get` role.
+        '404':
+          description: >
+            The solution document does not exist.

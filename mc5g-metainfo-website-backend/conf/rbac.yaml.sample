@@ -1,0 +1,34 @@
+# Role-based access control.
+
+_definitions:
+  def-read-only: &def-read-only
+    component-get:
+    component-list:
+    product-get:
+    product-list:
+    quality-get:
+    quality-list:
+    result-get:
+    result-list:
+    solution-get:
+    solution-list:
+    test-get:
+    test-list:
+
+anonymous:
+  <<: *def-read-only
+authenticated:
+  <<: *def-read-only
+
+groups:
+  5g-sith:
+    product-release:
+    solution-branch:
+
+users: {}
+#  octocat:
+#    components-delete:
+
+bearers: {}
+#  tokenid:
+#    components-doodad:

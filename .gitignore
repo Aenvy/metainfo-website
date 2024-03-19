@@ -1,0 +1,43 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# editor
+.idea
+.vscode
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# Frontend
+# production
+mc5g-metainfo-website-frontend/src/config.js
+mc5g-metainfo-website-frontend/build
+
+# misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Backend
+# production
+mc5g-metainfo-website-backend/__pycache__
+mc5g-metainfo-website-backend/conf/jenkins.yaml
+mc5g-metainfo-website-backend/conf/rbac.yaml
+mc5g-metainfo-website-backend/conf/env.vars
+
+# misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

@@ -1,0 +1,15 @@
+# Jenkins server definitions.
+
+_definitions:
+  jenkins-prod-server: &jenkins-prod-server
+    server: '...'
+    username: '...'
+    password: '...'
+
+actions:
+  branch:
+   <<: *jenkins-prod-server
+   job: 'cms5g_release/cms5g-promote-solution'
+  release:
+   <<: *jenkins-prod-server
+   job: 'cms5g_release/cms5g-release-product'
