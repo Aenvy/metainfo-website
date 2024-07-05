@@ -52,7 +52,7 @@ const TableArtifacts = ({ collection, columns, sortable, data, rowDetails, sort,
 
   useEffect(() => {
     sortable && sortArtifacts(data, sort || DEFAULT_SORT)
-    setSortedVersions(data.map(datum => { return {...datum, '_key': `${datum.ident.groupId}/${datum.ident.artifactId}/${datum.ident.version}`} }))
+    setSortedVersions(data.map(datum => { return {...datum, '_key': `${datum.ident.artifactId}/${datum.ident.version}`} }))
   }, [collection, sortable, data, sort])
 
   const allColumns = [
@@ -60,7 +60,7 @@ const TableArtifacts = ({ collection, columns, sortable, data, rowDetails, sort,
       header: 'Name',
       property: 'name',
       render: datum => (
-        <Link to={`/${collection}/${datum.ident.groupId}/${datum.ident.artifactId}`}>{datum.name}</Link>
+        <Link to={`/${collection}/${datum.ident.artifactId}`}>{datum.name}</Link>
       ),
     },
     {
@@ -75,7 +75,7 @@ const TableArtifacts = ({ collection, columns, sortable, data, rowDetails, sort,
       header: 'Artifact ID',
       property: 'ident.artifactId',
       render: datum => (
-        <Link to={`/${collection}/${datum.ident.groupId}/${datum.ident.artifactId}`}>{datum.ident.artifactId}</Link>
+        <Link to={`/${collection}/${datum.ident.artifactId}`}>{datum.ident.artifactId}</Link>
       ),
     },
     {
@@ -90,11 +90,11 @@ const TableArtifacts = ({ collection, columns, sortable, data, rowDetails, sort,
           
           return (
             
-            <Link to={`${nested ? nestedPrefix : '/'}${collection}/${datum.ident.groupId}/${datum.ident.artifactId}/${datum.ident.version}`}>{version_to_display}</Link>
+            <Link to={`${nested ? nestedPrefix : '/'}${collection}/${datum.ident.artifactId}/${datum.ident.version}`}>{version_to_display}</Link>
           );
         } else {
           return (
-            <Link to={`${nested ? nestedPrefix : '/'}${collection}/${datum.ident.groupId}/${datum.ident.artifactId}/${datum.ident.version}`}>{version}</Link>
+            <Link to={`${nested ? nestedPrefix : '/'}${collection}/${datum.ident.artifactId}/${datum.ident.version}`}>{version}</Link>
           );
         }
       }

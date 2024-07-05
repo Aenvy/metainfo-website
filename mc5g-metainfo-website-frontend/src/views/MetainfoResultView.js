@@ -51,7 +51,7 @@ const MetainfoResultView = ({ setExtraIcons, model, onParams = null, ...props })
       return
 
     const newIcons = [
-      <ActionDownloadMetainfoButton collection={model.collection} groupId={model.groupId} artifactId={model.artifactId} version={model.version} />
+      <ActionDownloadMetainfoButton collection={model.collection} artifactId={model.artifactId} version={model.version} />
     ]
     setExtraIcons(newIcons)
   }, [setExtraIcons, model])
@@ -68,12 +68,12 @@ const MetainfoResultView = ({ setExtraIcons, model, onParams = null, ...props })
           <h1>Results summary</h1>
           {
             metainfo.deployer
-              ? <Text>Deployer version: <Link to={`/products/${metainfo.deployer.groupId}/${metainfo.deployer.artifactId}/${metainfo.deployer.version}`}>{metainfo.deployer.version}</Link></Text>
+              ? <Text>Deployer version: <Link to={`/products/${metainfo.deployer.artifactId}/${metainfo.deployer.version}`}>{metainfo.deployer.version}</Link></Text>
               : null
           }
           {
             metainfo.test
-              ? <Text>Test version: <Link to={`/tests/${metainfo.test.groupId}/${metainfo.test.artifactId}/${metainfo.test.version}`}>{metainfo.test.version}</Link></Text>
+              ? <Text>Test version: <Link to={`/tests/${metainfo.test.artifactId}/${metainfo.test.version}`}>{metainfo.test.version}</Link></Text>
               : null
           }
           {

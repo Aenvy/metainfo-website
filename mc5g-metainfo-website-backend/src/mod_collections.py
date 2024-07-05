@@ -16,8 +16,9 @@ from query import Query
 
 from utils_collections import *
 from utils_security import ensure_role
+from module_utils.status import Status, min_status
 
-API_ROOT='/api/v2/'
+API_ROOT='/api/'
 
 MONGODB_URL = os.environ['MONGODB_URL']
 MONGODB_COLLECTION = os.environ.get('MONGODB_COLLECTION', 'metainfo')
@@ -25,7 +26,63 @@ MONGODB_COLLECTION = os.environ.get('MONGODB_COLLECTION', 'metainfo')
 mongoClient = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URL)
 db = mongoClient[MONGODB_COLLECTION]
 
+def get_groupId(collection):
+    if collection == COLLECTION_MAPPING['solutions']:
+      return f'com.hpe.cms.5g.{collection}'
+    else:
+      return f'com.hpe.cms.5g.{collection}.*'
+
 mod = quart.Blueprint('collections', __name__)
+
+collection = COLLECTION_MAPPING['solutions']
+rc = r'<rc:re:\d\.\d{4}\.\d-.*>'
+async def _tagged_metainfo(collection, tag="", rc=True):
+    
+    if tag.startswith("MC5G-"):
+        tag = tag[5:]
+    query = {'$or': [{'tags': {'$regex': tag}}, {'ident.branch': {'$regex': tag}}]} \
+        if tag else {'tags': {'$nin': [None, [], ""]}}
+    query['status'] = {'$nin': min_status('RC')}
+    if not rc:
+        query['status']['$nin'].append('RC')
+    cursor = db[collection].find(query)
+    return await cursor.to_list(length=None)
+
+@mod.route("{}releases".format(API_ROOT), methods = ['GET'])
+
+@mod.route("{}releases/<string:tag>".format(API_ROOT), methods = ['GET'])
+async def get_releases_endpoint(tag=""):
+    rc_param = quart.request.args.get('rc', False)
+    # Ensure that 'db' object is initialized and imported correctly
+    rcsol = await _tagged_metainfo("sol", tag=tag, rc=True)
+    prods = {
+        f"{p['artifactId']}/{p['version']['base']}": p
+        for p in await _tagged_metainfo("prod", tag=tag, rc=rc_param)
+    }
+    r = {
+        f"{sol['name']} [{tag.replace('MC5G-', '')}]": {
+            'version': sol['version']['base'],
+            'artifactId': sol['artifactId'],
+            'metainfo': sol,
+            'products': {
+                f"{prod['name']} [{tag.replace('MC5G-', '')}]": {
+                    'version': prod['version']['base'],
+                    'artifactId': prod['artifactId'],
+                    'metainfo': prod,
+                }
+                for pident, prod in prods.items()
+                if pident in prodident
+                and tag in prod['tags']
+            }
+        }
+        for sol in rcsol
+        for tag in sol['tags']
+        for prodident in [{
+            f"{p['groupId']}/{p['artifactId']}/{p['version']['base']}"
+            for p in sol['products']
+        }]
+    }
+    return {k: v for k, v in r.items() if v['products']}
 
 @mod.route('{}<string:collection>/uiSchema'.format(API_ROOT), methods = ['GET'])
 async def getCollectionSchema(collection):
@@ -35,15 +92,17 @@ async def getCollectionSchema(collection):
 
   return quart.jsonify(schema2json(schema))
 
-@mod.route('{}<string:collection>/<string:groupId>/<string:artifactId>/<string:version>'.format(API_ROOT), methods = ['GET'])
-async def getArtifact(collection, groupId, artifactId, version):
+@mod.route('{}<string:collection>/<string:artifactId>/<string:version>'.format(API_ROOT), methods = ['GET'])
+async def getArtifact(collection, artifactId, version):
   schema = COLLECTION_TO_SCHEMA[collection]
   col = COLLECTION_MAPPING[collection]
+  groupId = get_groupId(col)
   role = COLLECTION_TO_ROLE_GET[collection]
   ensure_role(quart.session, quart.request, role)
-
-  data = await queryArtifact(db, collection, groupId, artifactId, version, view=quart.request.args.get('view', 'full'))
-
+  if collection == COLLECTION_MAPPING['solutions']:
+    data = await queryArtifact(db, collection, groupId, artifactId, version, view=quart.request.args.get('view', 'full'))
+  else:
+    data = await querySubArtifact(db, collection, artifactId, version, view=quart.request.args.get('view', 'full'))
   if data != None:
     if not quart.request.args.get('raw', 'false') == 'true':
       data = migrateMetainfo(schema, data)
@@ -51,10 +110,11 @@ async def getArtifact(collection, groupId, artifactId, version):
   else:
     raise NotFound()
 
-@mod.route('{}<string:collection>/<string:groupId>/<string:artifactId>/<string:version>/graph'.format(API_ROOT), methods = ['GET'])
-async def getArtifactGraph(collection, groupId, artifactId, version):
+@mod.route('{}<string:collection>/<string:artifactId>/<string:version>/graph'.format(API_ROOT), methods = ['GET'])
+async def getArtifactGraph(collection, artifactId, version):
   schema = COLLECTION_TO_SCHEMA[collection]
   col = COLLECTION_MAPPING[collection]
+  groupId = get_groupId(col)
   role = COLLECTION_TO_ROLE_GET[collection]
   ensure_role(quart.session, quart.request, role)
 
@@ -92,13 +152,12 @@ async def getListArtifacts(collection):
 
   return collectionResponse(result, quart.request.accept_mimetypes)
 
-@mod.route('{}components/<string:groupId>/<string:artifactId>/<string:version>/buildDependencies'.format(API_ROOT), methods = ['GET'])
-async def getComponentBuildDependencies(groupId, artifactId, version):
-  col = COLLECTION_MAPPING['components']
+@mod.route('{}components/<string:artifactId>/<string:version>/buildDependencies'.format(API_ROOT), methods = ['GET'])
+async def getComponentBuildDependencies(artifactId, version):
   role = COLLECTION_TO_ROLE_GET['components']
   ensure_role(quart.session, quart.request, role)
 
-  component = await queryArtifact(db, 'components', groupId, artifactId, version)
+  component = await querySubArtifact(db, 'components', artifactId, version)
   if component == None:
     raise NotFound()
 
@@ -110,12 +169,12 @@ async def getComponentBuildDependencies(groupId, artifactId, version):
 
   return collectionResponse(result, quart.request.accept_mimetypes)
 
-@mod.route('{}components/<string:groupId>/<string:artifactId>/<string:version>/runtimeDependencies'.format(API_ROOT), methods = ['GET'])
-async def getComponentRuntimeDependencies(groupId, artifactId, version):
+@mod.route('{}components/<string:artifactId>/<string:version>/runtimeDependencies'.format(API_ROOT), methods = ['GET'])
+async def getComponentRuntimeDependencies(artifactId, version):
   role = COLLECTION_TO_ROLE_GET['components']
   ensure_role(quart.session, quart.request, role)
 
-  component = await queryArtifact(db, 'components', groupId, artifactId, version)
+  component = await querySubArtifact(db, 'components', artifactId, version)
   if component == None:
     raise NotFound()
 
@@ -127,12 +186,12 @@ async def getComponentRuntimeDependencies(groupId, artifactId, version):
 
   return collectionResponse(result, quart.request.accept_mimetypes)
 
-@mod.route('{}products/<string:groupId>/<string:artifactId>/<string:version>/components'.format(API_ROOT), methods = ['GET'])
-async def getProductComponents(groupId, artifactId, version):
+@mod.route('{}products/<string:artifactId>/<string:version>/components'.format(API_ROOT), methods = ['GET'])
+async def getProductComponents(artifactId, version):
   role = COLLECTION_TO_ROLE_GET['products']
   ensure_role(quart.session, quart.request, role)
 
-  product = await queryArtifact(db, 'products', groupId, artifactId, version)
+  product = await querySubArtifact(db, 'products', artifactId, version)
   if product == None:
     raise NotFound()
 
@@ -144,15 +203,15 @@ async def getProductComponents(groupId, artifactId, version):
 
   return collectionResponse(result, quart.request.accept_mimetypes)
 
-@mod.route('{}products/<string:groupId>/<string:artifactId>/<string:version>/components/buildDependencies'.format(API_ROOT), methods = ['GET'])
-async def getProductComponentsBuildDependencies(groupId, artifactId, version):
+@mod.route('{}products/<string:artifactId>/<string:version>/components/buildDependencies'.format(API_ROOT), methods = ['GET'])
+async def getProductComponentsBuildDependencies(artifactId, version):
   role = COLLECTION_TO_ROLE_GET['products']
+
   ensure_role(quart.session, quart.request, role)
 
-  product = await queryArtifact(db, 'products', groupId, artifactId, version)
+  product = await querySubArtifact(db, 'products', artifactId, version)
   if product == None:
     raise NotFound()
-
   query = identToQuery(product, ['components'])
   if query == None:
     result = searchEmpty('components')
@@ -166,12 +225,13 @@ async def getProductComponentsBuildDependencies(groupId, artifactId, version):
 
   return collectionResponse(result, quart.request.accept_mimetypes)
 
-@mod.route('{}products/<string:groupId>/<string:artifactId>/<string:version>/components/runtimeDependencies'.format(API_ROOT), methods = ['GET'])
-async def getProductComponentsRuntimeDependencies(groupId, artifactId, version):
+@mod.route('{}products/<string:artifactId>/<string:version>/components/runtimeDependencies'.format(API_ROOT), methods = ['GET'])
+async def getProductComponentsRuntimeDependencies(artifactId, version):
   role = COLLECTION_TO_ROLE_GET['products']
+
   ensure_role(quart.session, quart.request, role)
 
-  product = await queryArtifact(db, 'products', groupId, artifactId, version)
+  product = await querySubArtifact(db, 'products', artifactId, version)
   if product == None:
     raise NotFound()
 
@@ -188,9 +248,11 @@ async def getProductComponentsRuntimeDependencies(groupId, artifactId, version):
 
   return collectionResponse(result, quart.request.accept_mimetypes)
 
-@mod.route('{}solutions/<string:groupId>/<string:artifactId>/<string:version>/products'.format(API_ROOT), methods = ['GET'])
-async def getSolutionProducts(groupId, artifactId, version):
+@mod.route('{}solutions/<string:artifactId>/<string:version>/products'.format(API_ROOT), methods = ['GET'])
+async def getSolutionProducts(artifactId, version):
   role = COLLECTION_TO_ROLE_GET['solutions']
+  col = COLLECTION_MAPPING['solutions']
+  groupId = get_groupId(col)
   ensure_role(quart.session, quart.request, role)
 
   solution = await queryArtifact(db, 'solutions', groupId, artifactId, version)
@@ -205,9 +267,11 @@ async def getSolutionProducts(groupId, artifactId, version):
 
   return collectionResponse(result, quart.request.accept_mimetypes)
 
-@mod.route('{}solutions/<string:groupId>/<string:artifactId>/<string:version>/products/components'.format(API_ROOT), methods = ['GET'])
-async def getSolutionProductsComponents(groupId, artifactId, version):
+@mod.route('{}solutions/<string:artifactId>/<string:version>/products/components'.format(API_ROOT), methods = ['GET'])
+async def getSolutionProductsComponents(artifactId, version):
   role = COLLECTION_TO_ROLE_GET['solutions']
+  col = COLLECTION_MAPPING['solutions']
+  groupId = get_groupId(col)
   ensure_role(quart.session, quart.request, role)
 
   solution = await queryArtifact(db, 'solutions', groupId, artifactId, version)
@@ -227,9 +291,11 @@ async def getSolutionProductsComponents(groupId, artifactId, version):
 
   return collectionResponse(result, quart.request.accept_mimetypes)
 
-@mod.route('{}solutions/<string:groupId>/<string:artifactId>/<string:version>/products/components/buildDependencies'.format(API_ROOT), methods = ['GET'])
-async def getSolutionProductsComponentsBuildDependencies(groupId, artifactId, version):
+@mod.route('{}solutions/<string:artifactId>/<string:version>/products/components/buildDependencies'.format(API_ROOT), methods = ['GET'])
+async def getSolutionProductsComponentsBuildDependencies(artifactId, version):
   role = COLLECTION_TO_ROLE_GET['solutions']
+  col = COLLECTION_MAPPING['solutions']
+  groupId = get_groupId(col)
   ensure_role(quart.session, quart.request, role)
 
   solution = await queryArtifact(db, 'solutions', groupId, artifactId, version)
@@ -254,9 +320,11 @@ async def getSolutionProductsComponentsBuildDependencies(groupId, artifactId, ve
 
   return collectionResponse(result, quart.request.accept_mimetypes)
 
-@mod.route('{}solutions/<string:groupId>/<string:artifactId>/<string:version>/products/components/runtimeDependencies'.format(API_ROOT), methods = ['GET'])
-async def getSolutionProductsComponentsRuntimeDependencies(groupId, artifactId, version):
+@mod.route('{}solutions/<string:artifactId>/<string:version>/products/components/runtimeDependencies'.format(API_ROOT), methods = ['GET'])
+async def getSolutionProductsComponentsRuntimeDependencies(artifactId, version):
   role = COLLECTION_TO_ROLE_GET['solutions']
+  col = COLLECTION_MAPPING['solutions']
+  groupId = get_groupId(col)
   ensure_role(quart.session, quart.request, role)
 
   solution = await queryArtifact(db, 'solutions', groupId, artifactId, version)
@@ -281,30 +349,32 @@ async def getSolutionProductsComponentsRuntimeDependencies(groupId, artifactId, 
 
   return collectionResponse(result, quart.request.accept_mimetypes)
 
-@mod.route('{}solutions/<string:groupId>/<string:artifactId>/<string:version>/inventory'.format(API_ROOT), methods = ['GET'])
-async def getInventoryContent(groupId, artifactId, version):
-    role = COLLECTION_TO_ROLE_GET['results']
-    ensure_role(quart.session, quart.request, role)
-    version_list = [version, re.sub(r'-\d{1,2}$', '', version)]
+@mod.route('{}solutions/<string:artifactId>/<string:version>/inventory'.format(API_ROOT), methods = ['GET'])
+async def getInventoryContent(artifactId, version):
+  role = COLLECTION_TO_ROLE_GET['results']
+  col = COLLECTION_MAPPING['solutions']
+  groupId = get_groupId(col)
+  ensure_role(quart.session, quart.request, role)
+  version_list = [version, re.sub(r'-\d{1,2}$', '', version)]
 
-    for ver in version_list:
-        try:
-            result = await queryResultArtifact(db, 'results', groupId, artifactId, ver)
-            if result:
-                inventory_url = result.get('inventory', None)
-                if inventory_url:
-                    response = requests.get(inventory_url, verify=False)
-                    if response.status_code == 200:
-                        content_type = response.headers.get('Content-Type', '')
-                        return quart.Response(status=200, response=response.text, content_type=content_type)
-                    else:
-                        return quart.Response(status=response.status_code, text="Failed to fetch inventory content")
-                else:
-                    return "Inventory URL not found for the specified document."
-            else:
-                raise NotFound()
-        except NotFound:
-            continue
+  for ver in version_list:
+    try:
+      result = await queryResultArtifact(db, 'results', groupId, artifactId, ver)
+      if result:
+        inventory_url = result.get('inventory', None)
+        if inventory_url:
+          response = requests.get(inventory_url, verify=False)
+          if response.status_code == 200:
+            content_type = response.headers.get('Content-Type', '')
+            return quart.Response(status=200, response=response.text, content_type=content_type)
+          else:
+            return quart.Response(status=response.status_code, text="Failed to fetch inventory content")
+        else:
+          return "Inventory URL not found for the specified document."
+      else:
+        raise NotFound()
+    except NotFound:
+      continue
 
-    # If none of the versions return data, raise NotFound
-    raise NotFound()
+  # If none of the versions return data, raise NotFound
+  raise NotFound()

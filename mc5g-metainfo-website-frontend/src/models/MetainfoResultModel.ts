@@ -10,7 +10,6 @@ export class MetainfoResultModel {
   public metainfoTreeDataProvider?: MetainfoTreeDataProvider
 
   public collection: string
-  public groupId: string
   public artifactId: string
   public version: string
 
@@ -22,9 +21,8 @@ export class MetainfoResultModel {
     this.metainfoTreeDataProvider = metainfoTreeDataProvider
   }
 
-  public load(collection: string, groupId: string, artifactId: string, version: string) {
+  public load(collection: string, artifactId: string, version: string) {
     this.collection = collection
-    this.groupId = groupId
     this.artifactId = artifactId
     this.version = version
 
@@ -33,9 +31,9 @@ export class MetainfoResultModel {
 
     this.notifyNewData()
 
-    getArtifact(this.collection, this.groupId, this.artifactId, this.version)
+    getArtifact(this.collection, this.artifactId, this.version)
       .then((result) => {
-        if (!this.outdated(collection, groupId, artifactId, version)) {
+        if (!this.outdated(collection, artifactId, version)) {
           this.metainfo = result
           if (this.metainfoTreeDataProvider)
             this.metainfoTreeDataProvider.populateRootMetainfo(this.collection, result)
@@ -44,14 +42,14 @@ export class MetainfoResultModel {
 
           getListArtifactsFromIdents('products', 'summary', this.metainfo.identifiers)
             .then((result) => {
-              if (!this.outdated(collection, groupId, artifactId, version)) {
+              if (!this.outdated(collection, artifactId, version)) {
                 this.productsTested = result
 
                 this.notifyNewData()
               }
             })
             .catch((error) => {
-              if (!this.outdated(collection, groupId, artifactId, version)) {
+              if (!this.outdated(collection, artifactId, version)) {
                 this.productsTested = error
 
                 this.notifyNewData()
@@ -60,7 +58,7 @@ export class MetainfoResultModel {
         }
       }
       ).catch((error) => {
-        if (!this.outdated(collection, groupId, artifactId, version)) {
+        if (!this.outdated(collection, artifactId, version)) {
           this.metainfo = error
 
           this.notifyNewData()
@@ -68,9 +66,8 @@ export class MetainfoResultModel {
       })
   }
 
-  public outdated(collection: string, groupId: string, artifactId: string, version: string): boolean {
+  public outdated(collection: string, artifactId: string, version: string): boolean {
     return this.collection !== collection ||
-      this.groupId !== groupId ||
       this.artifactId !== artifactId ||
       this.version !== version
   }
@@ -78,7 +75,6 @@ export class MetainfoResultModel {
   public getDataModel() {
     return {
       collection: this.collection,
-      groupId: this.groupId,
       artifactId: this.artifactId,
       version: this.version,
       metainfo: this.metainfo,

@@ -5,16 +5,16 @@ import {
 } from 'react-complex-tree';
 
 function metainfoToTreeItem(collection: String, metainfo): TreeItem {
-  const index = `${collection}#${metainfo.ident.groupId}#${metainfo.ident.artifactId}#${metainfo.ident.version}`
+  const index = `${collection}#${metainfo.ident.artifactId}#${metainfo.ident.version}`
   var children = []
   var isFolder = false
 
   if (collection === 'solutions') {
-    children = metainfo.products.map(child => `products#${child.groupId}#${child.artifactId}#${child.version}`)
+    children = metainfo.products.map(child => `products#${child.artifactId}#${child.version}`)
     isFolder = true
   }
   else if (collection === 'products') {
-    children = metainfo.components.map(child => `components#${child.groupId}#${child.artifactId}#${child.version}`)
+    children = metainfo.components.map(child => `components#${child.artifactId}#${child.version}`)
     isFolder = true
   }
 

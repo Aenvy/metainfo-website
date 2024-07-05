@@ -13,7 +13,7 @@ from utils_security import ensure_role
 from utils_collections import COLLECTION_MAPPING
 from utils_collections import queryArtifact
 
-API_ROOT='/api/v2/'
+API_ROOT='/api/'
 
 MONGODB_URL = os.environ['MONGODB_URL']
 MONGODB_COLLECTION = os.environ.get('MONGODB_COLLECTION', 'metainfo')

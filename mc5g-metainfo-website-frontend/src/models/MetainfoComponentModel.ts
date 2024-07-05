@@ -14,7 +14,6 @@ export class MetainfoComponentModel {
   public metainfoTreeDataProvider?: MetainfoTreeDataProvider
 
   public collection: string
-  public groupId: string
   public artifactId: string
   public version: string
 
@@ -28,9 +27,8 @@ export class MetainfoComponentModel {
     this.metainfoTreeDataProvider = metainfoTreeDataProvider
   }
 
-  public load(collection: string, groupId: string, artifactId: string, version: string) {
+  public load(collection: string, artifactId: string, version: string) {
     this.collection = collection
-    this.groupId = groupId
     this.artifactId = artifactId
     this.version = version
 
@@ -41,64 +39,64 @@ export class MetainfoComponentModel {
 
     this.notifyNewData()
 
-    getArtifact(this.collection, this.groupId, this.artifactId, this.version)
+    getArtifact(this.collection, this.artifactId, this.version)
       .then((result) => {
-        if (!this.outdated(collection, groupId, artifactId, version)) {
+        if (!this.outdated(collection, artifactId, version)) {
           this.metainfo = result
 
           this.notifyNewData()
         }
       }
       ).catch((error) => {
-        if (!this.outdated(collection, groupId, artifactId, version)) {
+        if (!this.outdated(collection, artifactId, version)) {
           this.metainfo = error
 
           this.notifyNewData()
         }
       })
 
-    getArtifactListArtifacts(this.collection, this.groupId, this.artifactId, this.version, 'buildDependencies', 'summary')
+    getArtifactListArtifacts(this.collection, this.artifactId, this.version, 'buildDependencies', 'summary')
       .then((result) => {
-        if (!this.outdated(collection, groupId, artifactId, version)) {
+        if (!this.outdated(collection, artifactId, version)) {
           this.buildDependencies = result;
 
           this.notifyNewData()
         }
       }
       ).catch((error) => {
-        if (!this.outdated(collection, groupId, artifactId, version)) {
+        if (!this.outdated(collection, artifactId, version)) {
           this.buildDependencies = error;
 
           this.notifyNewData()
         }
       })
 
-    getArtifactListArtifacts(this.collection, this.groupId, this.artifactId, this.version, 'runtimeDependencies', 'summary')
+    getArtifactListArtifacts(this.collection, this.artifactId, this.version, 'runtimeDependencies', 'summary')
       .then((result) => {
-        if (!this.outdated(collection, groupId, artifactId, version)) {
+        if (!this.outdated(collection, artifactId, version)) {
           this.runtimeDependencies = result;
 
           this.notifyNewData()
         }
       }
       ).catch((error) => {
-        if (!this.outdated(collection, groupId, artifactId, version)) {
+        if (!this.outdated(collection, artifactId, version)) {
           this.runtimeDependencies = error;
 
           this.notifyNewData()
         }
       })
 
-    getListArtifacts('products', 'summary', computeRelatedFilters(this.groupId, this.artifactId, this.version, 'components'), null, 0, maxRelatedShown)
+    getListArtifacts('products', 'summary', computeRelatedFilters(this.artifactId, this.version, 'components'), null, 0, maxRelatedShown)
       .then((result) => {
-        if (!this.outdated(collection, groupId, artifactId, version)) {
+        if (!this.outdated(collection, artifactId, version)) {
           this.relatedProducts = result;
 
           this.notifyNewData()
         }
       }
       ).catch((error) => {
-        if (!this.outdated(collection, groupId, artifactId, version)) {
+        if (!this.outdated(collection, artifactId, version)) {
           this.relatedProducts = error;
 
           this.notifyNewData()
@@ -106,9 +104,8 @@ export class MetainfoComponentModel {
       })
   }
 
-  public outdated(collection: string, groupId: string, artifactId: string, version: string): boolean {
+  public outdated(collection: string, artifactId: string, version: string): boolean {
     return this.collection !== collection ||
-      this.groupId !== groupId ||
       this.artifactId !== artifactId ||
       this.version !== version
   }
@@ -116,7 +113,6 @@ export class MetainfoComponentModel {
   public getDataModel() {
     return {
       collection: this.collection,
-      groupId: this.groupId,
       artifactId: this.artifactId,
       version: this.version,
       metainfo: this.metainfo,

@@ -1,5 +1,5 @@
-export const metainfoApiUrl = '/api/v2'
-export const uiBasePath = 'ui/v2'
+export const metainfoApiUrl = '/api'
+export const uiBasePath = 'ui'
 export const maxRelatedShown = 5
 
 export const jenkinsBaseUrl = 'https://ktm324.gre.hpecorp.net/jenkins'

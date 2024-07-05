@@ -25,7 +25,7 @@ import { MetainfoProductModel } from '../models/MetainfoProductModel'
 import { MetainfoTreeDataProvider } from '../models/MetainfoTreeDataProvider'
 
 const MetainfoProductPage = ({ setExtraIcons, collection }) => {
-  const { prodGroupId, prodArtifactId, prodVersion } = useParams()
+  const {prodArtifactId, prodVersion } = useParams()
 
   const [dataProvider] = useState(new MetainfoTreeDataProvider())
   const [dataModel, setDataModel] = useState(undefined)
@@ -42,14 +42,12 @@ const MetainfoProductPage = ({ setExtraIcons, collection }) => {
   const updateComponentIdent = (params) => {
     const newComponentIdent = {
       collection: 'components',
-      groupId: params.compGroupId,
       artifactId: params.compArtifactId,
       version: params.compVersion,
     }
 
     if (!componentIdent ||
       componentIdent.collection !== newComponentIdent.collection ||
-      componentIdent.groupId !== newComponentIdent.groupId ||
       componentIdent.artifactId !== newComponentIdent.artifactId ||
       componentIdent.version !== newComponentIdent.version
     ) {
@@ -58,11 +56,11 @@ const MetainfoProductPage = ({ setExtraIcons, collection }) => {
   }
 
   useEffect(() => {
-    model.load(collection, prodGroupId, prodArtifactId, prodVersion)
-  }, [collection, prodGroupId, prodArtifactId, prodVersion, model])
+    model.load(collection, prodArtifactId, prodVersion)
+  }, [collection, prodArtifactId, prodVersion, model])
 
   useEffect(() => {
-    componentIdent && componentModel.load(componentIdent.collection, componentIdent.groupId, componentIdent.artifactId, componentIdent.version)
+    componentIdent && componentModel.load(componentIdent.collection, componentIdent.artifactId, componentIdent.version)
   }, [componentIdent, componentModel])
 
   return renderState(model.metainfo, (metainfo) => (
@@ -73,7 +71,7 @@ const MetainfoProductPage = ({ setExtraIcons, collection }) => {
           <Route index element={
             <MetainfoProductView setExtraIcons={setExtraIcons} model={dataModel} alignSelf='top' />
           } />
-          <Route path='components/:compGroupId/:compArtifactId/:compVersion' element={
+          <Route path='components/:compArtifactId/:compVersion' element={
             <MetainfoComponentView setExtraIcons={setExtraIcons} model={componentDataModel} alignSelf='top'
               onParams={updateComponentIdent}
             />

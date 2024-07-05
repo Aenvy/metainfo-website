@@ -185,10 +185,10 @@ export function compareVersion(a, b) {
   return aVersionFields.length - bVersionFields.length
 }
 
-export function computeRelatedSearch(collection, groupId, artifactId, version, property) {
-  return `/search?type=${collection}&filters=${JSON.stringify(computeRelatedFilters(groupId, artifactId, version, property))}`
+export function computeRelatedSearch(collection, artifactId, version, property) {
+  return `/search?type=${collection}&filters=${JSON.stringify(computeRelatedFilters(artifactId, version, property))}`
 }
 
-export function computeRelatedFilters(groupId, artifactId, version, property) {
-  return { [property]: { '$anyOf': [{ 'groupId': groupId, 'artifactId': artifactId, 'version': version }] } }
+export function computeRelatedFilters(artifactId, version, property) {
+  return { [property]: { '$anyOf': [{'artifactId': artifactId, 'version': version }] } }
 }

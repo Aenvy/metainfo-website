@@ -1,0 +1,45 @@
+<html>
+    <head>
+        <style>
+            body {{position:absolute; top:0; bottom:0; display:flex; flex-direction:column;}}
+            #hierarchy0 {{display:flex; flex-direction:row;}}
+            #hierarchy {{display:grid;}}
+            #hierarchy.div:nth-child(1) {{grid-column: 1/2;grid-row: 1/2;}}
+            #hierarchy.div:nth-child(2) {{grid-column: 2/3;grid-row: 1/2;}}
+            #hierarchy.div:nth-child(3) {{grid-column: 3/4;grid-row: 1/2;}}
+            #hierarchy.div:nth-child(4) {{grid-column: 4/5;grid-row: 1/4;}}
+            #hierarchy div {{max-height:30em; overflow:scroll; border:2px solid lightgrey;}}
+            #metainfo0 {{flex:auto; overflow:auto; border:1px solid black;}}
+            #metainfo {{overflow:auto; border:1px solid black; grid-column:1/4; grid-row:2/3; min-width:100em; min-height:50em;}}
+            h3 {{margin:0 10em; border:dotted lightgrey; border-width:0 0 1px 0;}}
+        </style>
+    </head>
+    <body>
+        <h1>{title}</h1>
+        <h2>{subtitle}</h2>
+        <div id='hierarchy'>
+            <div><h3>Children</h3>
+                <ol>
+                    {children}
+                </ol>
+            </div>
+            <div><h3>Parents</h3>
+                <ol>
+                    {parents}
+                </ol>
+            </div>
+            <div><h3>Packages</h3>
+                <ol>
+                    {packages}
+                </ol>
+            </div>
+            <div><h3>Results</h3>
+                <ol>
+                    {results}
+                </ol>
+            </div>
+            <iframe id='metainfo' src='{iframe_src}'></iframe>
+        </div>
+        Generating page {d}
+    </body>
+</html>

@@ -100,6 +100,13 @@ VIEW_TO_WATCH_PROJECTION={
 METAINFO_MIGRATION_HISTORY_JENKINS_BASE_URL=os.environ.get('METAINFO_MIGRATION_HISTORY_JENKINS_BASE_URL', False)
 METAINFO_MIGRATION_HISTORY_JENKINS_BASE_URL_NHSS=os.environ.get('METAINFO_MIGRATION_HISTORY_JENKINS_BASE_URL_NHSS', False)
 
+def querySubArtifact(database, collection,artifactId, version, view='full'):
+  col = COLLECTION_MAPPING[collection]
+  filter = {'ident.artifactId': artifactId, 'ident.version': version}
+  projection = VIEW_TO_PROJECTION[view]
+
+  return database[col].find_one(filter=filter, projection=projection)
+
 def queryArtifact(database, collection, groupId, artifactId, version, view='full'):
   col = COLLECTION_MAPPING[collection]
   filter = {'ident.groupId': groupId, 'ident.artifactId': artifactId, 'ident.version': version}

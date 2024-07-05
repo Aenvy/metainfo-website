@@ -7,7 +7,7 @@ from werkzeug.exceptions import HTTPException
 
 from utils_security import load_rbac_configuration
 
-API_ROOT='/api/v2/'
+API_ROOT='/api/'
 
 APPLICATION_URL = os.environ.get('APPLICATION_URL', None)
 CERTFILE = os.environ.get('CERTFILE', None)

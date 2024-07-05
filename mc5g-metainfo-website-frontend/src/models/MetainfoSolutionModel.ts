@@ -10,7 +10,6 @@ export class MetainfoSolutionModel {
   public metainfoTreeDataProvider?: MetainfoTreeDataProvider
 
   public collection: string
-  public groupId: string
   public artifactId: string
   public version: string
 
@@ -25,9 +24,8 @@ export class MetainfoSolutionModel {
     this.metainfoTreeDataProvider = metainfoTreeDataProvider
   }
 
-  public load(collection: string, groupId: string, artifactId: string, version: string) {
+  public load(collection: string, artifactId: string, version: string) {
     this.collection = collection
-    this.groupId = groupId
     this.artifactId = artifactId
     this.version = version
 
@@ -39,9 +37,9 @@ export class MetainfoSolutionModel {
 
     this.notifyNewData()
 
-    getArtifact(this.collection, this.groupId, this.artifactId, this.version)
+    getArtifact(this.collection, this.artifactId, this.version)
       .then((result) => {
-        if (!this.outdated(collection, groupId, artifactId, version)) {
+        if (!this.outdated(collection, artifactId, version)) {
           this.metainfo = result
           if (this.metainfoTreeDataProvider)
             this.metainfoTreeDataProvider.populateRootMetainfo(this.collection, result)
@@ -50,16 +48,16 @@ export class MetainfoSolutionModel {
         }
       }
       ).catch((error) => {
-        if (!this.outdated(collection, groupId, artifactId, version)) {
+        if (!this.outdated(collection, artifactId, version)) {
           this.metainfo = error
 
           this.notifyNewData()
         }
       })
 
-    getArtifactListArtifacts(this.collection, this.groupId, this.artifactId, this.version, 'products', 'summary')
+    getArtifactListArtifacts(this.collection, this.artifactId, this.version, 'products', 'summary')
       .then((result) => {
-        if (!this.outdated(collection, groupId, artifactId, version)) {
+        if (!this.outdated(collection, artifactId, version)) {
           this.products = result;
 
           if (this.metainfoTreeDataProvider)
@@ -69,16 +67,16 @@ export class MetainfoSolutionModel {
         }
       }
       ).catch((error) => {
-        if (!this.outdated(collection, groupId, artifactId, version)) {
+        if (!this.outdated(collection, artifactId, version)) {
           this.products = error;
 
           this.notifyNewData()
         }
       })
 
-    getArtifactListArtifacts(this.collection, this.groupId, this.artifactId, this.version, 'products/components', 'summary')
+    getArtifactListArtifacts(this.collection, this.artifactId, this.version, 'products/components', 'summary')
       .then((result) => {
-        if (!this.outdated(collection, groupId, artifactId, version)) {
+        if (!this.outdated(collection, artifactId, version)) {
           this.components = result;
 
           if (this.metainfoTreeDataProvider)
@@ -88,39 +86,39 @@ export class MetainfoSolutionModel {
         }
       }
       ).catch((error) => {
-        if (!this.outdated(collection, groupId, artifactId, version)) {
+        if (!this.outdated(collection, artifactId, version)) {
           this.components = error;
 
           this.notifyNewData()
         }
       })
 
-    getArtifactListArtifacts(this.collection, this.groupId, this.artifactId, this.version, 'products/components/buildDependencies', 'summary')
+    getArtifactListArtifacts(this.collection, this.artifactId, this.version, 'products/components/buildDependencies', 'summary')
       .then((result) => {
-        if (!this.outdated(collection, groupId, artifactId, version)) {
+        if (!this.outdated(collection, artifactId, version)) {
           this.buildDependencies = result;
 
           this.notifyNewData()
         }
       }
       ).catch((error) => {
-        if (!this.outdated(collection, groupId, artifactId, version)) {
+        if (!this.outdated(collection, artifactId, version)) {
           this.buildDependencies = error;
 
           this.notifyNewData()
         }
       })
 
-    getArtifactListArtifacts(this.collection, this.groupId, this.artifactId, this.version, 'products/components/runtimeDependencies', 'summary')
+    getArtifactListArtifacts(this.collection, this.artifactId, this.version, 'products/components/runtimeDependencies', 'summary')
       .then((result) => {
-        if (!this.outdated(collection, groupId, artifactId, version)) {
+        if (!this.outdated(collection, artifactId, version)) {
           this.runtimeDependencies = result;
 
           this.notifyNewData()
         }
       }
       ).catch((error) => {
-        if (!this.outdated(collection, groupId, artifactId, version)) {
+        if (!this.outdated(collection, artifactId, version)) {
           this.runtimeDependencies = error;
 
           this.notifyNewData()
@@ -128,9 +126,8 @@ export class MetainfoSolutionModel {
       })
   }
 
-  public outdated(collection: string, groupId: string, artifactId: string, version: string): boolean {
+  public outdated(collection: string, artifactId: string, version: string): boolean {
     return this.collection !== collection ||
-      this.groupId !== groupId ||
       this.artifactId !== artifactId ||
       this.version !== version
   }
@@ -138,7 +135,6 @@ export class MetainfoSolutionModel {
   public getDataModel() {
     return {
       collection: this.collection,
-      groupId: this.groupId,
       artifactId: this.artifactId,
       version: this.version,
       metainfo: this.metainfo,

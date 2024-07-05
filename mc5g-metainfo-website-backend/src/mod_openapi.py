@@ -3,7 +3,7 @@
 import os
 import quart
 
-API_ROOT='/api/v2/'
+API_ROOT='/api/'
 
 # FIXME: Ugly hack, need to properly package the backend...
 from inspect import getsourcefile

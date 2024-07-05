@@ -14,7 +14,7 @@ import { MetainfoTestModel } from '../models/MetainfoTestModel'
 import { MetainfoTreeDataProvider } from '../models/MetainfoTreeDataProvider'
 
 const MetainfoTestPage = ({ setExtraIcons, collection }) => {
-  const { groupId, artifactId, version } = useParams()
+  const {artifactId, version } = useParams()
 
   const [dataProvider] = useState(new MetainfoTreeDataProvider())
   const [dataModel, setDataModel] = useState(undefined)
@@ -23,8 +23,8 @@ const MetainfoTestPage = ({ setExtraIcons, collection }) => {
   }, dataProvider))
 
   useEffect(() => {
-    model.load(collection, groupId, artifactId, version)
-  }, [collection, groupId, artifactId, version, model])
+    model.load(collection, artifactId, version)
+  }, [collection, artifactId, version, model])
 
   return (
     <Page>

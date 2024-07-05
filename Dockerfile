@@ -32,7 +32,7 @@ WORKDIR /app
 
 COPY mc5g-metainfo-website-backend/ /app/
 COPY --from=frontend /frontend/build/*.js* /app/frontend/static/
-COPY --from=frontend /frontend/build/*.png /frontend/build/*.svg /frontend/build/*.ico /frontend/build/*.json /frontend/build/*.txt /app/frontend/
+COPY --from=frontend /frontend/build/*.png /frontend/build/*.svg /frontend/build/*.ico /frontend/build/*.json /frontend/build/*.md /frontend/build/*.txt /app/frontend/
 COPY --from=frontend /frontend/build/index.html \
     /app/frontend/
 COPY --from=frontend /frontend/build/static/. /app/frontend/static/

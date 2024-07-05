@@ -9,7 +9,7 @@ from oauthlib.oauth2 import WebApplicationClient
 
 from utils_security import get_roles_for_session, build_roles_for_session
 
-API_ROOT='/api/v2/'
+API_ROOT='/api/'
 OAUTH2_SCOPES=['read:user', 'read:org']
 USER_ANONYMOUS={
   'id': None,

@@ -25,10 +25,10 @@ import { MetainfoComponentModel } from '../models/MetainfoComponentModel'
 import { MetainfoProductModel } from '../models/MetainfoProductModel'
 import { MetainfoTreeDataProvider } from '../models/MetainfoTreeDataProvider'
 
-const FILTERS = { "tags": { "$allOf": ["/[0-9]\\.[0-9]{4}\\.[0-9]+(-RC[0-9]+)?$/"] }, "status": "/RC|CA Released|GA Released/" }
-const AGGREGATE_ON = { 'earliestFor': ['ident.groupId', 'ident.artifactId', 'ident.version:date'] }
+const FILTERS = {"tags": { "$allOf": ["/([0-9]\.[0-9]{4}(\.[0-9])?(-RC[0-9]+(\.[0-9]+)?)?)$/"]}, "status": "/RC|CA Released|GA Released/"}
+const AGGREGATE_ON = { 'latestFor': ['ident.groupId', 'ident.artifactId', 'ident.version:date'] }
 
-const TAG_RELEASE_REGEX = /([0-9]\.[0-9]{4}\.[0-9]+(-RC[0-9]+)?)$/
+const TAG_RELEASE_REGEX = /([0-9]\.[0-9]{4}(\.[0-9])?(-RC[0-9]+(\.[0-9]+)?)?)$/
 
 function tagToRelease(tag) {
   const result = tag.match(TAG_RELEASE_REGEX)
@@ -84,7 +84,7 @@ const ReleasesPage = ({ setExtraIcons }) => {
 
   const [versions, setVersions] = useState(undefined)
   const [releases, setReleases] = useState(undefined)
-
+  const [showReleaseCandidates, setShowReleaseCandidates] = useState(false);
   const [dataProvider] = useState(new MetainfoTreeDataProvider('/'))
 
   useEffect(() => {
@@ -96,18 +96,17 @@ const ReleasesPage = ({ setExtraIcons }) => {
   }, [])
 
   useEffect(() => {
-    if (versions !== undefined) {
-      dataProvider.populateMetainfos('products', versions.members)
+       if (versions !== undefined) {
+      const newReleases = versionsToReleases(versions);
+      const filteredReleases = showReleaseCandidates ? newReleases : newReleases.filter(release => !release.release.includes('RC'));
+      setReleases(filteredReleases);
     }
-
-    setReleases(versionsToReleases(versions))
-  }, [dataProvider, versions])
-
-  useEffect(() => {
+  }, [versions, showReleaseCandidates]);
+  useEffect(() => {   
     if (releases !== undefined) {
+      dataProvider.populateMetainfos('products', versions.members); 
       dataProvider.populateTreeItems(releases.map(release => {
-        const children = release.products.map(product => `products#${product.ident.groupId}#${product.ident.artifactId}#${product.ident.version}`)
-
+        const children = release.products.map(product => `products#${product.ident.artifactId}#${product.ident.version}`);
         return {
           index: `releases#${release.release}`,
           data: `${release.release}`,
@@ -116,8 +115,7 @@ const ReleasesPage = ({ setExtraIcons }) => {
           canMove: false,
           canRename: false,
         }
-      }))
-
+      }));
       dataProvider.populateTreeItem({
         index: `root`,
         data: `Releases`,
@@ -125,9 +123,9 @@ const ReleasesPage = ({ setExtraIcons }) => {
         children: releases.map(release => `releases#${release.release}`),
         canMove: false,
         canRename: false,
-      })
+      });
     }
-  }, [dataProvider, releases])
+  }, [dataProvider, releases]);
 
   useEffect(() => {
     if (hash) {
@@ -151,14 +149,12 @@ const ReleasesPage = ({ setExtraIcons }) => {
   const updateProductIdent = (params) => {
     const newProductIdent = {
       collection: 'products',
-      groupId: params.prodGroupId,
       artifactId: params.prodArtifactId,
       version: params.prodVersion,
     }
 
     if (!productIdent ||
       productIdent.collection !== newProductIdent.collection ||
-      productIdent.groupId !== newProductIdent.groupId ||
       productIdent.artifactId !== newProductIdent.artifactId ||
       productIdent.version !== newProductIdent.version
     ) {
@@ -169,14 +165,12 @@ const ReleasesPage = ({ setExtraIcons }) => {
   const updateComponentIdent = (params) => {
     const newComponentIdent = {
       collection: 'components',
-      groupId: params.compGroupId,
       artifactId: params.compArtifactId,
       version: params.compVersion,
     }
 
     if (!componentIdent ||
       componentIdent.collection !== newComponentIdent.collection ||
-      componentIdent.groupId !== newComponentIdent.groupId ||
       componentIdent.artifactId !== newComponentIdent.artifactId ||
       componentIdent.version !== newComponentIdent.version
     ) {
@@ -185,27 +179,33 @@ const ReleasesPage = ({ setExtraIcons }) => {
   }
 
   useEffect(() => {
-    productIdent && productModel.load(productIdent.collection, productIdent.groupId, productIdent.artifactId, productIdent.version)
+    productIdent && productModel.load(productIdent.collection, productIdent.artifactId, productIdent.version)
   }, [productIdent, productModel])
 
   useEffect(() => {
-    componentIdent && componentModel.load(componentIdent.collection, componentIdent.groupId, componentIdent.artifactId, componentIdent.version)
+    componentIdent && componentModel.load(componentIdent.collection, componentIdent.artifactId, componentIdent.version)
   }, [componentIdent, componentModel])
 
   return (
     <Page>
       <Grid columns={['medium', 'flex']}>
-        <SidebarReleaseTree dataProvider={dataProvider} />
+      <SidebarReleaseTree dataProvider={dataProvider} />
         <Routes>
-          <Route index element={
-            <LatestReleasesView setExtraIcons={setExtraIcons} releases={releases} nested={true} />
+        <Route index element={
+            <LatestReleasesView
+              setExtraIcons={setExtraIcons}
+              releases={releases}
+              nested={true}
+              showReleaseCandidates={showReleaseCandidates}
+              setShowReleaseCandidates={setShowReleaseCandidates}
+            />
           } />
-          <Route path=':release/products/:prodGroupId/:prodArtifactId/:prodVersion' element={
+          <Route path=':release/products/:prodArtifactId/:prodVersion' element={
             <MetainfoProductView setExtraIcons={setExtraIcons} model={productDataModel}
               onParams={updateProductIdent} alignSelf='top'
             />
           } />
-          <Route path=':release/products/:prodGroupId/:prodArtifactId/:prodVersion/components/:compGroupId/:compArtifactId/:compVersion' element={
+          <Route path=':release/products/:prodArtifactId/:prodVersion/components/:compArtifactId/:compVersion' element={
             <MetainfoComponentView setExtraIcons={setExtraIcons} model={componentDataModel}
               onParams={updateComponentIdent} alignSelf='top'
             />

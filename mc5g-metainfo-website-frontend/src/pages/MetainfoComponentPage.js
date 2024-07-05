@@ -11,7 +11,7 @@ import { MetainfoComponentModel } from '../models/MetainfoComponentModel'
 import MetainfoComponentView from '../views/MetainfoComponentView'
 
 const MetainfoComponentPage = ({ setExtraIcons, collection }) => {
-  const { compGroupId, compArtifactId, compVersion } = useParams()
+  const {compArtifactId, compVersion } = useParams()
 
   const [dataModel, setDataModel] = useState(undefined)
   const [model,] = useState(() => new MetainfoComponentModel((newDataModel) => {
@@ -19,8 +19,8 @@ const MetainfoComponentPage = ({ setExtraIcons, collection }) => {
   }))
 
   useEffect(() => {
-    model.load(collection, compGroupId, compArtifactId, compVersion)
-  }, [collection, compGroupId, compArtifactId, compVersion, model])
+    model.load(collection, compArtifactId, compVersion)
+  }, [collection,compArtifactId, compVersion, model])
 
   return (
     <Page>{

@@ -1,7 +1,39 @@
+/* style.css */
+
+/* Base styles */
 html, body, #root {
     margin: 0;
     padding: 0;
     min-height: 100vh;
+}
+
+/* Theme styles */
+body.light-theme {
+    --background-color: white;
+    --text-color: black;
+    --link-color: #0073e6; /* standard blue for links */
+    --link-hover-color: #005bb5; /* darker blue for hover */
+}
+
+body.dark-theme {
+    --background-color: #2c2c2c;
+    --text-color: white;
+    --link-color: #80bdff; /* lighter blue for dark theme links */
+    --link-hover-color: #66a3ff;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--link-hover-color);
 }
 
 .rct-tree-item-button {

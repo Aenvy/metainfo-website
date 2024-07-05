@@ -4,7 +4,7 @@ import quart
 
 from utils_security import get_roles_for_session
 
-API_ROOT='/api/v2/'
+API_ROOT='/api/'
 USER_ANONYMOUS = {
   'id': None,
   'name': 'Anonymous',

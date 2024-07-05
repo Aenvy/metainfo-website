@@ -37,7 +37,7 @@ const statusLines = [
     generator: generateLineStateReady,
   },
   {
-    states: ["Val Ready", "QA Ready", "RC", "GA Released"],
+    states: ["Val Ready", "QA Ready", "RC", "CA Released"],
     generator: generateLineStateReady,
   },
   {

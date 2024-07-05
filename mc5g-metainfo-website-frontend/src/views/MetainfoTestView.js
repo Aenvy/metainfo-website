@@ -45,7 +45,7 @@ const MetainfoTestView = ({ setExtraIcons, model, onParams = null, ...props }) =
       return
 
     const newIcons = [
-      <ActionDownloadMetainfoButton collection={model.collection} groupId={model.groupId} artifactId={model.artifactId} version={model.version} />
+      <ActionDownloadMetainfoButton collection={model.collection} artifactId={model.artifactId} version={model.version} />
     ]
     setExtraIcons(newIcons)
   }, [setExtraIcons, model])

@@ -172,8 +172,8 @@ export async function downloadListArtifactsCsv(collection, view, query, aggregat
   })
 }
 
-export async function getArtifact(collection, groupId, artifactId, version) {
-  const url = `${metainfoApiUrl}/${collection}/${groupId}/${artifactId}/${version}`
+export async function getArtifact(collection, artifactId, version) {
+  const url = `${metainfoApiUrl}/${collection}/${artifactId}/${version}`
   const options = {
     headers: new Headers({
       'Accept': 'application/json'
@@ -185,8 +185,8 @@ export async function getArtifact(collection, groupId, artifactId, version) {
   return fetch(request).then(response => toJsonOrError(response))
 }
 
-export async function getInventory(collection, groupId, artifactId, version) {
-  const url = `${metainfoApiUrl}/${collection}/${groupId}/${artifactId}/${version}/inventory`;
+export async function getInventory(collection, artifactId, version) {
+  const url = `${metainfoApiUrl}/${collection}/${artifactId}/${version}/inventory`;
   const options = {
     mode: 'cors'
   };
@@ -199,13 +199,13 @@ export async function getInventory(collection, groupId, artifactId, version) {
   });
 }
 
-export async function getArtifactListArtifacts(collection, groupId, artifactId, version, subpath, view) {
+export async function getArtifactListArtifacts(collection, artifactId, version, subpath, view) {
   const params = new URLSearchParams()
   if (view) {
     params.append('view', view)
   }
 
-  const url = `${metainfoApiUrl}/${collection}/${groupId}/${artifactId}/${version}/${subpath}?${params}`
+  const url = `${metainfoApiUrl}/${collection}/${artifactId}/${version}/${subpath}?${params}`
   const options = {
     headers: new Headers({
       'Accept': 'application/json'
@@ -257,10 +257,10 @@ export async function getListArtifactsFromIdents(collection, view, identifiers) 
   return fetch(request).then(response => toJsonOrError(response))
 }
 
-export async function releaseArtifact(collection, groupId, artifactId, version, data) {
+export async function releaseArtifact(collection, artifactId, version, data) {
   const params = new URLSearchParams(data)
 
-  const url = `${metainfoApiUrl}/${collection}/${groupId}/${artifactId}/${version}/release?${params}`
+  const url = `${metainfoApiUrl}/${collection}/${artifactId}/${version}/release?${params}`
   const options = {
     method: 'POST',
     mode: 'cors',
@@ -270,10 +270,10 @@ export async function releaseArtifact(collection, groupId, artifactId, version, 
   return fetch(request).then(response => toJsonOrError(response))
 }
 
-export async function branchArtifact(collection, groupId, artifactId, version, data) {
+export async function branchArtifact(collection, artifactId, version, data) {
   const params = new URLSearchParams(data)
 
-  const url = `${metainfoApiUrl}/${collection}/${groupId}/${artifactId}/${version}/branch?${params}`
+  const url = `${metainfoApiUrl}/${collection}/${artifactId}/${version}/branch?${params}`
   const options = {
     method: 'POST',
     mode: 'cors',

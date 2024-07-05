@@ -54,7 +54,7 @@ const MetainfoComponentView = ({ setExtraIcons, model, onParams = null, ...props
       return
 
     const newIcons = [
-      <ActionDownloadMetainfoButton collection={model.collection} groupId={model.groupId} artifactId={model.artifactId} version={model.version} />
+      <ActionDownloadMetainfoButton collection={model.collection} artifactId={model.artifactId} version={model.version} />
     ]
     setExtraIcons(newIcons)
   }, [setExtraIcons, model])
@@ -86,7 +86,7 @@ const MetainfoComponentView = ({ setExtraIcons, model, onParams = null, ...props
           {
             renderState(model.relatedProducts, (relatedProducts) => (
               <MetainfoRelated collection='products' data={relatedProducts}
-                moreLink={computeRelatedSearch('products', model.groupId, model.artifactId, model.version, 'components')}
+                moreLink={computeRelatedSearch('products', model.artifactId, model.version, 'components')}
               />
             ))
           }

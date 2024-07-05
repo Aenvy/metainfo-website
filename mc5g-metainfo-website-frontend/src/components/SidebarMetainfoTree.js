@@ -27,7 +27,7 @@ const SidebarMetainfoTree = ({ collection, metainfo, dataProvider }) => {
       viewState={{
         'metainfo-tree': {
           //selectedItems: [`${collection}#${metainfo.ident.groupId}#${metainfo.ident.artifactId}#${metainfo.ident.version}`],
-          expandedItems: [`${collection}#${metainfo.ident.groupId}#${metainfo.ident.artifactId}#${metainfo.ident.version}`]
+          expandedItems: [`${collection}#${metainfo.ident.artifactId}#${metainfo.ident.version}`]
         }
       }}
       canDragAndDrop={false}
@@ -41,7 +41,7 @@ const SidebarMetainfoTree = ({ collection, metainfo, dataProvider }) => {
             <Box direction='column' margin='small'>
               <Link to={dataProvider.buildUiPath(item)} style={{textDecoration: 'none'}}>
                 <Box style={{ fontWeight: context.isSelected ? 'bolder' : 'normal' }}>{title}</Box>
-                <Box style={{ color: 'grey' }}>{item.index.split('#')[3]}</Box>
+                <Box style={{ color: 'grey' }}>{item.index.split('#')[2]}</Box>
               </Link>
             </Box>
           </Box>
@@ -74,7 +74,7 @@ const SidebarReleaseTree = ({ dataProvider }) => {
             <Box direction='column' margin='small'>
               <Link to={dataProvider.buildUiPath(item)} style={{textDecoration: 'none'}}>
                 <Box style={{ fontWeight: context.isSelected ? 'bolder' : 'normal' }}>{title}</Box>
-                <Box style={{ color: 'grey' }}>{item.index.split('#')[3]}</Box>
+                <Box style={{ color: 'grey' }}>{item.index.split('#')[2]}</Box>
               </Link>
             </Box>
           </Box>

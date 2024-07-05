@@ -6,10 +6,10 @@ info:
     This REST API specification offers a collection-based, document-centric set of endpoints to manipulate MC5G CICD metainfos.
     It is modeled against the REST API described in the document HP Service Manager's Web Services Guide.
 servers:
-  - url: https://ktm215.gre.hpecorp.net/api/v2/
+  - url: https://ktm215.gre.hpecorp.net/api/
     description: >
       Production server instance.
-  - url: https://ktm442.gre.hpecorp.net:8081/api/v2/
+  - url: https://ktm442.gre.hpecorp.net:8081/api/
     description: >
       Sandbox server instance.
 components:
@@ -516,6 +516,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/query-result'
+            text/csv: {}
+        '401':
+          description: >
+            The user lacks the `solution-get` role.
+        '404':
+          description: >
+            The solution document does not exist.
+  /solutions/{groupId}/{artifactId}/{version}/inventory:
+    get:
+      tags:
+        - solutions
+      description: >
+        Queries the ansible inventory of a given solution.
+      parameters:
+        - *collection-path-groupId
+        - *collection-path-artifactId
+        - *collection-path-version
+      responses:
+        '200':
+          description: >
+            The query result is returned.
+          content:
             text/csv: {}
         '401':
           description: >

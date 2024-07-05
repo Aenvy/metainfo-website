@@ -85,7 +85,7 @@ const MetainfoProductView = ({ setExtraIcons, model, onParams = null, ...props }
       return
 
     const newIcons = [
-      <ActionDownloadMetainfoButton collection={model.collection} groupId={model.groupId} artifactId={model.artifactId} version={model.version} />
+      <ActionDownloadMetainfoButton collection={model.collection} artifactId={model.artifactId} version={model.version} />
     ]
 
     if (showReleaseButton) {
@@ -94,7 +94,6 @@ const MetainfoProductView = ({ setExtraIcons, model, onParams = null, ...props }
           () => setShowModal(
             <ModalActionRelease
               collection={model.collection}
-              groupId={model.groupId}
               artifactId={model.artifactId}
               version={model.version}
               onDismiss={() => setShowModal(null)}
@@ -157,7 +156,7 @@ const MetainfoProductView = ({ setExtraIcons, model, onParams = null, ...props }
           {
             renderState(model.relatedSolutions, (relatedSolutions) => (
               <MetainfoRelated collection='solutions' data={relatedSolutions}
-                moreLink={computeRelatedSearch('solutions', model.groupId, model.artifactId, model.version, 'products')}
+                moreLink={computeRelatedSearch('solutions', model.artifactId, model.version, 'products')}
               />
             ))
           }

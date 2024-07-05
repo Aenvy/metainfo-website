@@ -3,7 +3,7 @@
 import os
 import quart
 
-UI_ROOT='/ui/v2/'
+UI_ROOT='/ui/'
 
 STATIC_PATH=os.environ['STATIC_PATH']
 
