@@ -17,6 +17,9 @@ from metainfo import Artefact, sorted_status
 
 class Stats():
     def __init__(self, mongo):
+        # Mongo cache needs never be cleared here.
+        # Stats is a huge page and very long to generate, uses cache as much as possible here
+        # Other cache clearing will make sure it is refreshed often enough!
         self.mongo = mongo
         bottle.route('/stats', 'GET', self.stats)
         bottle.route('/stats.html', 'GET', self.stats_html)

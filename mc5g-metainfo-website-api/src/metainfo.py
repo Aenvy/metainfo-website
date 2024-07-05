@@ -9,12 +9,13 @@
 # Metainfo classes
 import sys
 import json
+import requests
 from datetime import datetime
 import bottle
 from api import Api
 from static import templates
 from module_utils.artefacts.artefact import ArteFactory
-from module_utils.artefacts.status import Status
+from module_utils.artefacts.status import Status, min_status
 from module_utils.artefacts.version import Version
 from module_utils.artefacts.packages import Packages
 
@@ -25,7 +26,6 @@ def debug(msg, category="INFO"):
 
 def sorted_status(status, reverse=False):
     return [x[1] for x in sorted(((Status.create(s).value, s) for s in status), reverse=reverse)]
-
 
 ####
 # Generic Artefact handling
@@ -61,6 +61,12 @@ class Artefact(Api):
         self.add_route(f"/{self.module}", backend)
         backend = "metainfo"
         self.add_route(f"/{self.module}/{self.artifactId}/{self.version}", backend)
+        backend = "recursive"
+        self.add_route(f"/{self.module}/{self.artifactId}/{self.version}/recursive", backend)
+        if self.module == "solutions":
+            backend = "inventory"
+            self.add_route(f"/{self.module}/{self.artifactId}/{self.version}/inventory", backend)
+            self.add_route(f"/{self.module}/{self.artifactId}/{self.version}/inventory.<ext:re:url|yml>", backend)
         backend = "versions_bystatus"
         self.add_route(f"/{self.module}/{self.artifactId}/versions/bystatus/{self.versions}", backend)
         self.add_route(f"/{self.module}/{self.artifactId}/versions/bystatus", backend)
@@ -103,6 +109,9 @@ class Artefact(Api):
         return f"""<a href="{url}">{url if text is False else text}</a>"""
 
     # Backend metainfo
+    # Return one metainfo, possibly recursively
+    # Needs to be updated fast, mongo cache is therefore cleared
+    # But only do it on JSON API request, not on HTML (the HTML page calls the JSON one anyway)
     @classmethod
     def artefact_from_metainfo(cls, metainfo, **kwargs):
         """Creates an Artefact object from a metainfo dict"""
@@ -129,25 +138,36 @@ class Artefact(Api):
         )
 
     def get_metainfo(self, artifactId, version):
+        self.mongo.clear_cache()
         return self._metainfo(artifactId, version).render()
+
+    def _recursive_metainfos(self, artifactId, version):
+        metainfo = self._metainfo(artifactId, version)
+        children = metainfo.get_all_children()
+        discarded = bottle.request.params.get('discarded', False)
+        parents = [
+            p
+            for p in sorted(metainfo.get_all_parents())
+            if discarded or p.status != Status.DISCARDED
+        ]
+        return metainfo, children, parents
 
     def get_metainfo_html(self, artifactId, version):
         d = datetime.today()
-        metainfo = self._metainfo(artifactId, version)
+        metainfo, children, parents = self._recursive_metainfos(artifactId, version)
         children = "\n".join(
             f"<li><a href='{Artefact.ident_url(**c.ident())}.html'>{c}</a></li>"
-            for c in sorted(metainfo.get_all_children())
+            for c in sorted(children)
         )
-        discarded = bottle.request.params.get('discarded', False)
         parents = "\n".join(
             f"<li><a href='{Artefact.ident_url(**p.ident())}.html'>{p}</a></li>"
-            for p in sorted(metainfo.get_all_parents())
-            if discarded or p.status != Status.DISCARDED
+            for p in sorted(parents)
         )
         pkgs = "\n".join(
             f"<li><a href='{Artefact.package_url(p.repo_type, p.nexus_name, p.nexus_version)}.html'>{repr(p)}</a></li>"
             for p in Packages.list_artefact_packages(metainfo)
         )
+        discarded = bottle.request.params.get('discarded', False)
         results = "\n".join(
             f"<li><a href='{Artefact.ident_url(**r.ident())}.html'>{r}</a></li>"
             for r in sorted(metainfo.get_all_results())
@@ -162,10 +182,58 @@ class Artefact(Api):
             packages=pkgs,
             results=results,
             iframe_src=Artefact.ident_url(**metainfo.ident()),
+            recursive_url=Artefact.ident_url(**metainfo.ident()) + "/recursive",
+            inventory_url=self._inventory_url(artifactId, version),
             d=datetime.today() - d,
         )
 
+    def get_recursive(self, artifactId, version):
+        self.mongo.clear_cache()
+        metainfo, children, parents = self._recursive_metainfos(artifactId, version)
+        return {
+            "metainfo": metainfo.render(),
+            "children": {
+                name: [
+                    c.render()
+                    for c in children
+                    if c.__class__.__name__ == name
+                ]
+                for name in {_.__class__.__name__ for _ in children}
+            },
+            "parents": {
+                name: [
+                    p.render()
+                    for p in parents
+                    if p.__class__.__name__ == name
+                ]
+                for name in {_.__class__.__name__ for _ in parents}
+            },
+        }
+
+    def _inventory_url(self, artifactId, version):
+        solution = self._metainfo(artifactId, version)
+        result = sorted(
+            r
+            for r in solution.get_all_results()
+            if hasattr(r.metainfo, "inventory")
+        )[-1:]
+        return result[0].metainfo.inventory if result else ""
+
+    def get_inventory(self, artifactId, version, ext=False):
+        url = self._inventory_url(artifactId, version)
+        if not url:
+            return ""
+        if ext=="url":
+            return url
+        r = requests.get(url, verify="/etc/pki/tls/cert.pem")
+        if not ext:
+            for name, value in r.headers.items():
+                bottle.response.add_header(name, value)
+        return r.text
+
     # Backend versions and versions_bystatus
+    # Lists all versions, needs to be updated on new arrivals
+    # Hence mongo cache is cleared. Again, only on JSON calls.
     def _versions(self, artifactId, versions, filters=None, query=None):
         filters = filters or {}
         query = query or {}
@@ -204,6 +272,7 @@ class Artefact(Api):
         ]
 
     def get_versions(self, artifactId=None, versions='*'):
+        self.mongo.clear_cache()
         bottle.response.content_type = 'application/json'
         return json.dumps([
             version.base()
@@ -222,6 +291,7 @@ class Artefact(Api):
         )
 
     def get_versions_bystatus(self, artifactId=None, versions='*'):
+        self.mongo.clear_cache()
         result = self._versions(artifactId, versions)
         return {
             status: [version.base() for version, ident in result if ident['status'] == status]
@@ -229,6 +299,8 @@ class Artefact(Api):
         }
 
     # Backend general
+    # To get generic informations about a collection: list of name and artifactIds
+    # This moves slowly, hence it doesn't require mongo cache cleared here
     def _general(self):
         whitelist = bottle.request.params.get('whitelist', True)
         if self.collection == "prod" and whitelist:
@@ -277,7 +349,87 @@ class ProdInfo(Artefact):
 
     # Backend prodinfo
     def get_prodinfo(self, artifactId):
+        # Moves slowly, don't clear mongo cache here
         return (self.mongo.find(
             self.collection,
             query={'metainfo': artifactId[:-5] if artifactId.endswith('-prod') else artifactId},
         ) or [{}])[0]
+
+
+# Branches names after feature/patch/release:
+#  MC5G(-optional)-1.aamm.[01X]
+#  [optional] is something like 5G-EIR, AUSF, HSS-IWF, NAFPM, NFMF, NRF, PGW, UDM, UDR, UDSF
+#  Regexp for optional is [A-Z-_0-9]+
+#  Example: MC5G-UDSF-1.2112.X
+# Tags are very similar:
+#  MC5G(-optional)-1.aamm(.[01X] or -RC[0-9] or .[01X]-RC[0-9])
+#  Except for stuff like MC5G-1.2306.0-Phenix1
+#   or MC5G-1.2406.0-RC1.1
+#   or MC5G-CIHSS-05.00.00
+#   or MC5G-Internal-23.3.0
+#   or TO_NOT_DELETE
+# So regexp matching is very hard, and validation is made on code
+# And we may want to look for MC5G-*-1.2403*
+# Since this is called often, and moves slowly: do not clear mongo cache automatically here!
+class Releases(Artefact):
+    collection = "sol"
+    rc = r'<rc:re:\d\.\d{4}\.\d-.*>'
+
+    def routes(self):
+        # Note the absence of "/" between release and <tag>
+        # This is done to catch both
+        self.add_route("/releases", "releases")
+        self.add_route("/releases/<tag>", "releases")
+
+    # Backend releases
+    def _tagged_metainfo(self, collection, tag="", rc=True):
+        # Removes leading MC5G-
+        # This allows looking for MC5G-1.2406 and finding MC5G-AUSF-1.2406
+        if tag.startswith("MC5G-"):
+            tag = tag[5:]
+        query = {'$or': [{'tags': {'$regex': tag}}, {'ident.branch': {'$regex': tag}}]} \
+            if tag else {'tags': {'$nin': [None, [], ""]}}
+        query['status'] = {'$nin': min_status('RC')}
+        if not rc:
+            query['status']['$nin'].append('RC')
+        return (
+            Artefact.artefact_from_metainfo(m, mongo=self.mongo, load_all=False)
+            for m in self.mongo.find(collection, query)
+        )
+
+    def get_releases(self, tag=""):
+        rc = bottle.request.params.get('rc', False)
+        # All relevant Solutions should be RC, we need to include that...
+        rcsol = self._tagged_metainfo("sol", tag=tag, rc=True)
+        prods = {
+            f"{p.groupId}/{p.artifactId}/{p.version.base()}": p
+            for p in self._tagged_metainfo("prod", tag=tag, rc=rc)
+        }
+        r = {
+            f"{sol.metainfo.name} [{tag.replace('MC5G-', '')}]": {
+                'version': sol.version.base(),
+                'artifactId': sol.artifactId,
+                'groupId': sol.groupId,
+                'metainfo': sol.render(),
+                'products': {
+                    f"{prod.metainfo.name} [{tag.replace('MC5G-', '')}]": {
+                        'version': prod.version.base(),
+                        'artifactId': prod.artifactId,
+                        'groupId': prod.groupId,
+                        'metainfo': prod.render(),
+                    }
+                    for pident, prod in prods.items()
+                    if pident in prodident
+                    and tag in prod.metainfo.tags
+                }
+            }
+            for sol in rcsol
+            for tag in sol.metainfo.tags
+            for prodident in [{
+                f"{p.groupId}/{p.artifactId}/{Version(p.version).base()}"
+                for p in sol.metainfo.products
+            }]
+        }
+        # Filtering when Products list is empty
+        # Useful when RC is False, it'll remove all Solutions which are only RC
+        return {k: v for k, v in r.items() if v['products']}
